@@ -1,0 +1,101 @@
+2025-05-08	15:01:06		INFO		---------login----------
+2025-05-08	15:01:06		INFO		Login API Initiated!
+2025-05-08	15:01:06		INFO		Check the email and password.
+2025-05-08	15:01:06		INFO		Invalid credentials
+2025-05-08	15:04:07		INFO		---------login----------
+2025-05-08	15:04:07		INFO		Login API Initiated!
+2025-05-08	15:04:07		INFO		Check the email and password.
+2025-05-08	15:04:07		INFO		JWT token generated
+2025-05-08	15:04:07		INFO		-------------------
+2025-05-08	15:13:49		INFO		-----------signup----------------
+2025-05-08	15:13:49		INFO		User registered successfully
+2025-05-08	15:14:31		INFO		-----------signup----------------
+2025-05-08	15:14:31		INFO		Email already exists
+2025-05-08	15:15:10		INFO		-----------signup----------------
+2025-05-08	15:15:10		INFO		User registered successfully
+2025-05-08	15:15:10		INFO		User registered, but email sending failed
+2025-05-08	15:16:17		INFO		-----------signup----------------
+2025-05-08	15:16:17		INFO		User registered successfully
+2025-05-08	15:18:46		INFO		-----------signup----------------
+2025-05-08	15:18:46		INFO		User registered successfully
+2025-05-08	15:19:38		INFO		-----------signup----------------
+2025-05-08	15:19:38		INFO		User registered successfully
+2025-05-08	15:21:30		INFO		-----------signup----------------
+2025-05-08	15:21:30		INFO		Email already exists
+2025-05-08	15:21:51		INFO		-----------signup----------------
+2025-05-08	15:21:51		INFO		User registered successfully
+2025-05-08	15:22:56		INFO		-----------signup----------------
+2025-05-08	15:22:56		INFO		User registered successfully
+2025-05-08	15:24:19		INFO		-----------signup----------------
+2025-05-08	15:24:19		INFO		User registered successfully
+2025-05-08	15:27:19		INFO		-----------signup----------------
+2025-05-08	15:27:19		INFO		User registered successfully
+2025-05-08	15:28:44		INFO		---------login----------
+2025-05-08	15:28:44		INFO		Login API Initiated!
+2025-05-08	15:28:44		INFO		Check the email and password.
+2025-05-08	15:28:44		INFO		Invalid credentials
+2025-05-08	15:29:28		INFO		---------login----------
+2025-05-08	15:29:28		INFO		Login API Initiated!
+2025-05-08	15:29:28		INFO		Check the email and password.
+2025-05-08	15:29:28		INFO		Invalid credentials
+2025-05-08	15:31:50		INFO		---------login----------
+2025-05-08	15:31:50		INFO		Login API Initiated!
+2025-05-08	15:31:50		INFO		Check the email and password.
+2025-05-08	15:31:50		ERROR		string indices must be integers, not 'str'
+2025-05-08	15:32:29		INFO		---------login----------
+2025-05-08	15:32:29		INFO		Login API Initiated!
+2025-05-08	15:32:29		INFO		Check the email and password.
+2025-05-08	15:32:29		ERROR		string indices must be integers, not 'str'
+2025-05-08	15:38:36		INFO		-----------signup----------------
+2025-05-08	15:38:36		INFO		User registered successfully
+2025-05-08	15:38:51		INFO		---------login----------
+2025-05-08	15:38:51		INFO		Login API Initiated!
+2025-05-08	15:38:51		INFO		Check the email and password.
+2025-05-08	15:38:51		INFO		JWT token generated
+2025-05-08	15:38:51		INFO		-------------------
+2025-05-08	15:39:30		INFO		-----------signup----------------
+2025-05-08	15:39:30		INFO		User registered successfully
+2025-05-08	15:39:45		INFO		---------login----------
+2025-05-08	15:39:45		INFO		Login API Initiated!
+2025-05-08	15:39:45		INFO		Check the email and password.
+2025-05-08	15:39:45		INFO		JWT token generated
+2025-05-08	15:39:45		INFO		-------------------
+2025-05-08	15:40:01		INFO		---------login----------
+2025-05-08	15:40:01		INFO		Login API Initiated!
+2025-05-08	15:40:01		INFO		Check the email and password.
+2025-05-08	15:40:01		INFO		JWT token generated
+2025-05-08	15:40:01		INFO		-------------------
+2025-05-08	15:40:07		INFO		---------login----------
+2025-05-08	15:40:07		INFO		Login API Initiated!
+2025-05-08	15:40:07		INFO		Check the email and password.
+2025-05-08	15:40:07		INFO		JWT token generated
+2025-05-08	15:40:07		INFO		-------------------
+2025-05-08	15:40:08		INFO		---------login----------
+2025-05-08	15:40:08		INFO		Login API Initiated!
+2025-05-08	15:40:08		INFO		Check the email and password.
+2025-05-08	15:40:08		INFO		JWT token generated
+2025-05-08	15:40:08		INFO		-------------------
+2025-05-08	15:40:09		INFO		---------login----------
+2025-05-08	15:40:09		INFO		Login API Initiated!
+2025-05-08	15:40:09		INFO		Check the email and password.
+2025-05-08	15:40:09		INFO		JWT token generated
+2025-05-08	15:40:09		INFO		-------------------
+2025-05-08	15:40:09		INFO		---------login----------
+2025-05-08	15:40:09		INFO		Login API Initiated!
+2025-05-08	15:40:09		INFO		Check the email and password.
+2025-05-08	15:40:09		INFO		JWT token generated
+2025-05-08	15:40:09		INFO		-------------------
+2025-05-08	15:58:22		INFO		-----------upload_documents----------------
+2025-05-08	15:58:22		INFO		Document uploaded successfully
+2025-05-08	16:00:09		INFO		-----------upload_documents----------------
+2025-05-08	16:00:09		INFO		Document uploaded successfully
+2025-05-08	16:01:50		INFO		-----------upload_documents----------------
+2025-05-08	16:01:50		INFO		Campaign name already exists
+2025-05-08	16:02:02		INFO		-----------upload_documents----------------
+2025-05-08	16:02:02		INFO		Document uploaded successfully
+2025-05-08	16:02:19		INFO		-----------upload_documents----------------
+2025-05-08	16:02:19		INFO		Campaign name already exists
+2025-05-08	16:35:36		INFO		-----------upload_documents----------------
+2025-05-08	16:35:36		INFO		Campaign name already exists
+2025-05-08	16:35:41		INFO		-----------upload_documents----------------
+2025-05-08	16:35:42		INFO		Document uploaded successfully
