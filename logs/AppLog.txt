@@ -99,3 +99,17 @@
 2025-05-08	16:35:36		INFO		Campaign name already exists
 2025-05-08	16:35:41		INFO		-----------upload_documents----------------
 2025-05-08	16:35:42		INFO		Document uploaded successfully
+2025-05-09	14:38:55		INFO		---------login----------
+2025-05-09	14:38:55		INFO		Login API Initiated!
+2025-05-09	14:38:55		INFO		Check the email and password.
+2025-05-09	14:38:55		INFO		JWT token generated
+2025-05-09	14:38:55		INFO		-------------------
+2025-05-09	14:39:34		INFO		-----------signup----------------
+2025-05-09	14:39:34		INFO		Email already exists
+2025-05-09	14:40:08		INFO		-----------signup----------------
+2025-05-09	14:40:08		INFO		User registered successfully
+2025-05-09	14:40:08		INFO		User registered, but email sending failed
+2025-05-09	14:41:57		INFO		-----------signup----------------
+2025-05-09	14:41:57		INFO		User registered successfully
+2025-05-09	14:42:34		INFO		-----------signup----------------
+2025-05-09	14:42:34		INFO		User registered successfully

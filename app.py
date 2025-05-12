@@ -50,7 +50,6 @@ def signup():
     try:
         logg_obj.Info_Log("-----------signup----------------")
         data = request.get_json()
-        print(data['password'], "PAssweasedfsfasdfgsdafgasd")
         required = ['name', 'email', 'password', 'role']
         if not all(field in data for field in required):
             logg_obj.Info_Log("Missing required fields")
