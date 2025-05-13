@@ -61,7 +61,6 @@ class OpenAIModel:
             logg_obj.Info_Log(f"input_tokens:{usage.prompt_tokens}")
             logg_obj.Info_Log(f"output_tokens:{usage.completion_tokens}")
             logg_obj.Info_Log(f"total_tokens:{usage.total_tokens}")
-
             return json_response
 
         except Exception as e:

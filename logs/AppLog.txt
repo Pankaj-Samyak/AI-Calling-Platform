@@ -191,3 +191,35 @@
 2025-05-13	10:53:19		INFO		Check the email and password.
 2025-05-13	10:53:19		INFO		JWT token generated
 2025-05-13	10:53:19		INFO		-------------------
+2025-05-13	11:07:00		INFO		-----------run_campaign_api----------------
+2025-05-13	11:07:04		INFO		Document uploaded successfully
+2025-05-13	12:17:39		INFO		-----------run_campaign_api----------------
+2025-05-13	12:18:26		INFO		-----------run_campaign_api----------------
+2025-05-13	12:18:27		INFO		Document uploaded successfully
+2025-05-13	12:20:54		INFO		-----------run_campaign_api----------------
+2025-05-13	12:20:54		INFO		Document uploaded successfully
+2025-05-13	12:24:34		INFO		-----------run_campaign_api----------------
+2025-05-13	12:24:35		INFO		Document uploaded successfully
+2025-05-13	12:43:24		INFO		---------login----------
+2025-05-13	12:43:24		INFO		Login API Initiated!
+2025-05-13	12:43:24		INFO		Check the email and password.
+2025-05-13	12:43:25		INFO		JWT token generated
+2025-05-13	12:43:25		INFO		-------------------
+2025-05-13	12:44:10		INFO		-----------run_campaign_api----------------
+2025-05-13	12:44:10		INFO		Document uploaded successfully
+2025-05-13	14:31:38		INFO		-----------generate_campaign_templates_api----------------
+2025-05-13	14:31:57		INFO		Document uploaded successfully
+2025-05-13	14:36:00		INFO		-----------generate_campaign_templates_api----------------
+2025-05-13	14:36:04		INFO		Document uploaded successfully
+2025-05-13	15:14:36		INFO		-----------generate_campaign_templates_api----------------
+2025-05-13	15:14:41		INFO		Document uploaded successfully
+2025-05-13	15:17:17		INFO		-----------run_campaign_api----------------
+2025-05-13	15:19:49		INFO		-----------run_campaign_api----------------
+2025-05-13	15:19:50		INFO		Document uploaded successfully
+2025-05-13	15:23:59		INFO		-----------generate_campaign_templates_api----------------
+2025-05-13	15:24:04		INFO		Document uploaded successfully
+2025-05-13	15:26:12		INFO		-----------run_campaign_api----------------
+2025-05-13	15:27:29		INFO		-----------run_campaign_api----------------
+2025-05-13	15:27:50		INFO		-----------run_campaign_api----------------
+2025-05-13	15:32:22		INFO		-----------run_campaign_api----------------
+2025-05-13	15:32:23		INFO		Document uploaded successfully

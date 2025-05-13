@@ -43,9 +43,9 @@ class MongoDB:
     def campaign_details(self) -> Collection:
         return self._db["campaign_details"]
 
-    # @property
-    # def unanswered_questions(self) -> Collection:
-    #     return self._db["unanswered_questions"]
+    @property
+    def campaign_template(self) -> Collection:
+        return self._db["campaign_template"]
 
     def store_file(self, file_data: bytes, filename: str, metadata: Dict[str, Any] = None) -> str:
         """Store a file in GridFS and return its file_id."""

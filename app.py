@@ -15,7 +15,7 @@ from src.user_utils.auth import (
     get_token_data
 )
 
-from src.user_utils.utils import generate_unique_id
+from src.user_utils.utils import generate_unique_id,validate_template
 from src.database.mongodb import db, get_dataframe
 from src.user_utils.send_password import send_password_email, forget_password
 from src.logger.log import Log_class
@@ -260,19 +260,16 @@ def add_user():
     except Exception as e:
         return jsonify({'message': 'User not created.', 'error': str(e)})
 
-
 @app.route('/update_user', methods=['POST'])
 @login_required
 @admin_required
 def update_user():
     data = request.get_json() or {}
     user_id = data.get('user_id')
-
     if not user_id:
         return jsonify({'error': 'User ID is required'}), 400
     if not db.users.find_one({'user_id': user_id}):
         return jsonify({'error': 'User not exists'}), 400
-
     update_fields = {k: v for k, v in data.items() if k != 'user_id'}
     db.users.update_one({'user_id': user_id}, {'$set': update_fields})
     return jsonify({'message': 'User updated successfully'})
@@ -283,14 +280,11 @@ def update_user():
 def delete_user():
     data = request.get_json() or {}
     user_id = data.get('user_id')
-
     if not user_id:
         return jsonify({'error': 'User ID is required'}), 400
-
     result = db.users.delete_one({'user_id': user_id})
     if result.deleted_count == 0:
         return jsonify({'error': 'User not found'}), 404
-
     return jsonify({'message': 'User deleted successfully'})
 
 # ----------------------
@@ -300,12 +294,10 @@ def delete_user():
 def forget_password_api():
     data = request.get_json() or {}
     email = data.get('email')
-
     if not email:
         return jsonify({'error': 'Email is required'}), 400
     if not db.users.find_one({'email': email}):
         return jsonify({'error': 'User not exists'}), 400
-
     new_pass = generate_unique_id()
     db.users.update_one(
         {'email': email},
@@ -314,7 +306,6 @@ def forget_password_api():
     sent = forget_password(email, new_pass)
     if not sent:
         return jsonify({'message': 'Password generated but email failed', 'password': new_pass})
-
     return jsonify({'message': 'Password reset email sent'})
 
 @app.route('/reset_password', methods=['POST'])
@@ -323,50 +314,27 @@ def reset_password_api():
     email = data.get('email')
     old_pass = data.get('old_password')
     new_pass = data.get('new_password')
-
     if not all([email, old_pass, new_pass]):
         return jsonify({'error': 'Email, old_password, new_password are required'}), 400
-
     user = db.users.find_one({'email': email})
     if not user or not user.get('password'):
         return jsonify({'error': 'User not exists'}), 400
-
     # Should use check_password_hash instead
     if not check_password_hash(user['password'], old_pass):
         return jsonify({'error': 'Incorrect old password'}), 400
-
     db.users.update_one({'email': email}, {'$set': {'password': generate_password_hash(new_pass)}})
     return jsonify({'message': 'Password updated successfully'})
 
-# ----------------------
-# 4. Search History
-# ----------------------
-@app.route('/search_history', methods=['POST'])
-@login_required
-# @admin_required
-def search_history():
-    pass
 
-@app.route('/delete_history', methods=['POST'])
-@login_required
-@admin_required
-def delete_history():
-    try:
-        pass
-
-    except Exception as e:
-        return jsonify({'error': 'Something went wrong', 'details': str(e)}), 500
-
-# ----------------------
-# 5. Document Management
-# ----------------------
+# ------------------------
+# Document Management API
+# ------------------------
 @app.route('/upload_documents', methods=['POST'])
 @login_required
 @admin_required
 def upload_excel():
     try:
         logg_obj.Info_Log("-----------upload_documents----------------")
-
         # Get campaign details from form data
         campaign_name = request.form.get('campaign_name')
         from_date = request.form.get('from_date')
@@ -474,13 +442,94 @@ def view_document(file_id: str):
 @login_required
 def delete_document(file_id: str):
     try:
-        pass
+        result = db.documents.delete_one({"file_id":file_id}, {'_id': 0})
+        return {"message": f"{int(result.deleted_count)}, document delete successfully"}
     except Exception as e:
-        pass
+        return {}
 
-# ----------------------
-#------campaign-api-----
-# ----------------------
+
+#----------------------------------------------#
+#-------------Get-Campaign-Tempalates----------#
+#----------------------------------------------#
+@app.route('/generate_campaign_templates', methods=['POST'])
+@login_required
+@admin_required
+def generate_campaign_templates_api():
+    try:
+        logg_obj.Info_Log("-----------generate_campaign_templates_api----------------")
+        # Get campaign details from form data
+        document_id = request.form.get('document_id')
+        campaign_name = request.form.get('campaign_name')
+        campaign_description = request.form.get('campaign_description')
+        #-----------------------------------------------------------------------------#
+        df = get_dataframe(document_id)
+        if df.empty:
+            logg_obj.Info_Log("No file found!")
+            return jsonify({'error': 'No file found!'}), 400
+
+        #correct the format of df columns.
+        campaign_columns = [col.strip().replace(' ', '_') for col in df.columns]
+        df.columns = campaign_columns
+
+        #----------------LLM-Campaign-Template---------------#
+        campaign_obj = CampaignTemplateGenerator()
+        campaign_templates = campaign_obj.generate_templates(campaign_columns, campaign_name,campaign_description)
+        #---------------Generate-Campaign-Template---------------#
+        token_data = get_token_data()
+        user_id = token_data.get('user_id')
+        #_________________________________________________________#
+        campaign_data = {
+                            "campaign_name":campaign_name,
+                            "campaign_templates": list(campaign_templates.values()),
+                            "document_id" : document_id,
+                            "created_by": user_id,
+                        }
+        # Insert multiple documents
+        result = db.campaign_template.insert_one(campaign_data)
+        #--------------------------#
+        db.campaign_template.update_one(
+                {"_id": result.inserted_id},
+                {"$set": {"campaign_template_id": str(result.inserted_id)}}
+            )
+        logg_obj.Info_Log("Document uploaded successfully")
+        return {'message': f'Campaign templates created successfully.', "campaign_template_id":str(result.inserted_id)}
+
+    except Exception as e:
+        print(str(e))
+        return {"error": str(e)}
+
+@app.route('/get_campaign_templates/<campaign_template_id>', methods=['GET'])
+@login_required
+@admin_required
+def get_campaign_templates_api(campaign_template_id: str):
+    try:
+        token_data = get_token_data() or {}
+        created_by = token_data.get('user_id')
+        query = {"created_by":created_by}
+        if campaign_template_id.strip() != "":
+            query["campaign_template_id"] = campaign_template_id
+            result = db.campaign_template.find_one(query,{"_id":0})
+            return dict(result)
+        else:
+            return {}
+    except Exception as e:
+        print(str(e))
+        return {}
+
+@app.route('/get_campaign_templates', methods=['GET'])
+@login_required
+@admin_required
+def get_all_campaign_templates_api():
+    try:
+        token_data = get_token_data() or {}
+        created_by = token_data.get('user_id')
+        query = {"created_by":created_by}
+        result = db.campaign_template.find(query,{"_id":0})
+        return list(result)
+    except Exception as e:
+        print(str(e))
+        return []
+#-----------------------------------------------#
 @app.route('/add_campaign', methods=['POST'])
 @login_required
 @admin_required
@@ -491,25 +540,35 @@ def add_campaign_api():
         document_id = request.form.get('document_id')
         campaign_name = request.form.get('campaign_name')
         campaign_description = request.form.get('campaign_description')
+        campaign_template = request.form.get('campaign_template')
+        #---------------------------------------------------------------#
+        # Check if campaign already exists
+        if db.campaign_details.find_one({'campaign_name': campaign_name}):
+            return jsonify({'error': 'campaign already exists'}), 400
+        #---------------------------------------------------------------#
 
         df = get_dataframe(document_id)
         if df.empty:
             logg_obj.Info_Log("No file found!")
             return jsonify({'error': 'No file found!'}), 400
-
         #correct the format of df columns.
+        campaign_templates_list = []
         campaign_columns = [col.strip().replace(' ', '_') for col in df.columns]
         df.columns = campaign_columns
-        #----------------Get-Campaign-Raw_Template---------------#
-        campaign_obj = CampaignTemplateGenerator()
-        campaign_templates = campaign_obj.generate_templates(campaign_columns, campaign_name,campaign_description)
-        #---------------Generate-Campaign-Template---------------#
-        campaign_templates_list = []
-        row_list = [dict(row) for _ , row in df.iterrows()]
-        for row in row_list:
-            templates = campaign_obj.evaluate_fstring_templates(campaign_templates,row)
-            row["campaign_templates"] = templates
-            campaign_templates_list.append(row)
+        #----------------Custom-Campaign-Template---------------#
+        flag = validate_template(campaign_template, campaign_columns)
+        if flag:
+            return {"error": ", ".join(flag)}
+        else:
+            campaign_obj = CampaignTemplateGenerator()
+            row_list = [dict(row) for _ , row in df.iterrows()]
+            for row in row_list:
+                campaign_templates = {"template": campaign_template}
+                templates = campaign_obj.evaluate_fstring_templates(campaign_templates, row)
+                row["campaign_name"] = campaign_name
+                row["campaign_description"] = campaign_description
+                row["campaign_templates"] = templates
+                campaign_templates_list.append(row)
 
         # Insert multiple documents
         result = db.campaign_details.insert_many(campaign_templates_list)
@@ -520,7 +579,7 @@ def add_campaign_api():
         for inserted_id in result.inserted_ids:
             db.campaign_details.update_one(
                 {"_id": inserted_id},
-                {"$set": {"campaign_id": str(document_id),"created_by":user_id}}
+                {"$set": {"campaign_id": str(inserted_id),"created_by":user_id, "document_id": str(document_id)}}
             )
         logg_obj.Info_Log("Document uploaded successfully")
         return {
