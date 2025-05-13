@@ -113,3 +113,81 @@
 2025-05-09	14:41:57		INFO		User registered successfully
 2025-05-09	14:42:34		INFO		-----------signup----------------
 2025-05-09	14:42:34		INFO		User registered successfully
+2025-05-12	18:04:08		INFO		---------login----------
+2025-05-12	18:04:08		INFO		Login API Initiated!
+2025-05-12	18:04:08		INFO		Check the email and password.
+2025-05-12	18:04:08		INFO		JWT token generated
+2025-05-12	18:04:08		INFO		-------------------
+2025-05-12	18:05:10		INFO		---------login----------
+2025-05-12	18:05:10		INFO		Login API Initiated!
+2025-05-12	18:05:10		INFO		Check the email and password.
+2025-05-12	18:05:10		INFO		JWT token generated
+2025-05-12	18:05:10		INFO		-------------------
+2025-05-12	18:06:59		INFO		---------login----------
+2025-05-12	18:06:59		INFO		Login API Initiated!
+2025-05-12	18:06:59		INFO		Check the email and password.
+2025-05-12	18:06:59		INFO		JWT token generated
+2025-05-12	18:06:59		INFO		-------------------
+2025-05-12	18:07:21		INFO		---------login----------
+2025-05-12	18:07:21		INFO		Login API Initiated!
+2025-05-12	18:07:21		INFO		Check the email and password.
+2025-05-12	18:07:21		INFO		JWT token generated
+2025-05-12	18:07:21		INFO		-------------------
+2025-05-12	18:08:12		INFO		---------login----------
+2025-05-12	18:08:12		INFO		Login API Initiated!
+2025-05-12	18:08:12		INFO		Check the email and password.
+2025-05-12	18:08:12		INFO		JWT token generated
+2025-05-12	18:08:12		INFO		-------------------
+2025-05-12	18:09:43		INFO		---------login----------
+2025-05-12	18:09:43		INFO		Login API Initiated!
+2025-05-12	18:09:43		INFO		Check the email and password.
+2025-05-12	18:09:43		INFO		JWT token generated
+2025-05-12	18:09:43		INFO		-------------------
+2025-05-12	18:13:26		INFO		-----------upload_documents----------------
+2025-05-12	18:13:26		INFO		Document uploaded successfully
+2025-05-12	18:17:10		INFO		---------login----------
+2025-05-12	18:17:10		INFO		Login API Initiated!
+2025-05-12	18:17:10		INFO		Check the email and password.
+2025-05-12	18:17:10		INFO		JWT token generated
+2025-05-12	18:17:10		INFO		-------------------
+2025-05-12	18:21:22		INFO		---------login----------
+2025-05-12	18:21:22		INFO		Login API Initiated!
+2025-05-12	18:21:22		INFO		Check the email and password.
+2025-05-12	18:21:22		INFO		JWT token generated
+2025-05-12	18:21:22		INFO		-------------------
+2025-05-12	18:21:25		INFO		-----------upload_documents----------------
+2025-05-12	18:21:25		INFO		No file part
+2025-05-12	18:23:29		INFO		---------login----------
+2025-05-12	18:23:29		INFO		Login API Initiated!
+2025-05-12	18:23:29		INFO		Check the email and password.
+2025-05-12	18:23:29		INFO		JWT token generated
+2025-05-12	18:23:29		INFO		-------------------
+2025-05-12	18:23:49		INFO		-----------upload_documents----------------
+2025-05-12	18:23:49		INFO		No file found!
+2025-05-12	18:24:13		INFO		-----------upload_documents----------------
+2025-05-12	18:24:13		INFO		No file found!
+2025-05-12	18:24:54		INFO		-----------upload_documents----------------
+2025-05-12	18:25:11		INFO		-----------upload_documents----------------
+2025-05-12	18:25:22		INFO		-----------upload_documents----------------
+2025-05-12	18:25:22		INFO		No file found!
+2025-05-12	18:27:09		INFO		-----------upload_documents----------------
+2025-05-12	18:29:06		INFO		-----------upload_documents----------------
+2025-05-12	18:31:09		INFO		-----------upload_documents----------------
+2025-05-13	10:17:15		INFO		-----------run_campaign_api----------------
+2025-05-13	10:17:27		INFO		---------login----------
+2025-05-13	10:17:27		INFO		Login API Initiated!
+2025-05-13	10:17:27		INFO		Check the email and password.
+2025-05-13	10:17:27		INFO		JWT token generated
+2025-05-13	10:17:27		INFO		-------------------
+2025-05-13	10:17:32		INFO		-----------run_campaign_api----------------
+2025-05-13	10:19:14		INFO		-----------run_campaign_api----------------
+2025-05-13	10:20:09		INFO		-----------run_campaign_api----------------
+2025-05-13	10:20:17		INFO		Document uploaded successfully
+2025-05-13	10:27:40		INFO		-----------run_campaign_api----------------
+2025-05-13	10:27:45		INFO		Document uploaded successfully
+2025-05-13	10:39:34		INFO		-----------run_campaign_api----------------
+2025-05-13	10:53:19		INFO		---------login----------
+2025-05-13	10:53:19		INFO		Login API Initiated!
+2025-05-13	10:53:19		INFO		Check the email and password.
+2025-05-13	10:53:19		INFO		JWT token generated
+2025-05-13	10:53:19		INFO		-------------------

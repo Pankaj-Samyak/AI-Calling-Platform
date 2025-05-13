@@ -14,11 +14,12 @@ from src.user_utils.auth import (
     admin_required, authenticate_user,
     get_token_data
 )
-from src.user_utils.utils import generate_unique_id
 
-from src.database.mongodb import db
+from src.user_utils.utils import generate_unique_id
+from src.database.mongodb import db, get_dataframe
 from src.user_utils.send_password import send_password_email, forget_password
 from src.logger.log import Log_class
+from src.template_engine.campaign_template_generator import CampaignTemplateGenerator
 
 # ----------------------
 # App Initialization
@@ -45,7 +46,6 @@ def allowed_file(filename: str) -> bool:
 # 1. User Signup
 # ----------------------
 @app.route('/signup', methods=['POST'])
-
 def signup():
     try:
         logg_obj.Info_Log("-----------signup----------------")
@@ -54,12 +54,12 @@ def signup():
         if not all(field in data for field in required):
             logg_obj.Info_Log("Missing required fields")
             return jsonify({'error': 'Missing required fields'}), 400
-        
+
         # Check if email already exists
         if db.users.find_one({'email': data['email']}):
             logg_obj.Info_Log("Email already exists")
             return jsonify({'error': 'Email already exists'}), 400
- 
+
         # Set creation time
         data['created_at'] = current_timestamp()
 
@@ -77,7 +77,7 @@ def signup():
             {"$set": {"user_id": str(mongo_id)}}
         )
         logg_obj.Info_Log("User registered successfully")
- 
+
         # Send confirmation email
         sent = send_password_email(data['email'], unhashed_password)
         if not sent:
@@ -87,7 +87,7 @@ def signup():
                 'user_id': str(mongo_id)
             })
         return jsonify({'message': 'User registered successfully', 'user_id': str(mongo_id)})
- 
+
     except Exception as e:
         return jsonify({'message': 'User not registered.', 'error': str(e)})
 
@@ -228,8 +228,12 @@ def add_user():
             logg_obj.Info_Log("Email already exists")
             return jsonify({'error': 'Email already exists'}), 400
 
-        # Set creation time
+        # Set creation details.
+        token_data = get_token_data()
+        user_id = token_data.get('user_id')
         data['created_at'] = current_timestamp()
+        data['created_by'] = user_id
+        #----------------------------------#
         inserted = db.users.insert_one(data)
         mongo_id = inserted.inserted_id
 
@@ -362,54 +366,53 @@ def delete_history():
 def upload_excel():
     try:
         logg_obj.Info_Log("-----------upload_documents----------------")
-        
+
         # Get campaign details from form data
         campaign_name = request.form.get('campaign_name')
         from_date = request.form.get('from_date')
         to_date = request.form.get('to_date')
-        
+
         # Validate required fields
         if not all([campaign_name, from_date, to_date]):
             logg_obj.Info_Log("Missing required fields")
             return jsonify({'error': 'Missing required fields: campaign_name, from_date, to_date'}), 400
-            
+
         # Check if campaign name already exists
         if db.documents.find_one({'campaign_name': campaign_name}):
             logg_obj.Info_Log("Campaign name already exists")
             return jsonify({'error': 'Campaign name already exists'}), 400
-            
+
         # Check if file is present
         if 'file' not in request.files:
             logg_obj.Info_Log("No file part")
             return jsonify({'error': 'No file part'}), 400
-            
+
         file = request.files['file']
         if file.filename == '':
             logg_obj.Info_Log("No selected file")
             return jsonify({'error': 'No selected file'}), 400
-            
+
         # Validate file type
         if not allowed_file(file.filename):
             logg_obj.Info_Log("Invalid file type")
             return jsonify({'error': f'Invalid file type. Allowed types: {", ".join(ALLOWED_EXTENSIONS)}'}), 400
-            
+
         # Get user ID from token
         token_data = get_token_data()
         user_id = token_data.get('user_id')
-        
         # Create unique filename
         filename = secure_filename(file.filename)
         unique_filename = f"{user_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{filename}"
-        
+
         # Save file to temporary location
         temp_dir = tempfile.gettempdir()
         file_path = os.path.join(temp_dir, unique_filename)
         file.save(file_path)
-        
+
         # Read file content
         with open(file_path, 'rb') as f:
             file_content = f.read()
-            
+
         # Store file in GridFS
         metadata = {
             'user_id': user_id,
@@ -419,9 +422,9 @@ def upload_excel():
             'upload_date': current_timestamp(),
             'file_type': Path(filename).suffix.lower()
         }
-        
+
         file_id = db.store_file(file_content, unique_filename, metadata)
-        
+
         # Create document record with reference to GridFS file
         document = {
             'user_id': user_id,
@@ -433,25 +436,25 @@ def upload_excel():
             'upload_date': current_timestamp(),
             'file_type': Path(filename).suffix.lower()
         }
-        
+
         # Save to MongoDB
         result = db.documents.insert_one(document)
-        
+
         # Clean up temporary file
         os.remove(file_path)
-        
+
         logg_obj.Info_Log("Document uploaded successfully")
         return jsonify({
             'message': 'Document uploaded successfully',
             'document_id': str(result.inserted_id)
         })
-        
+
     except Exception as e:
         logg_obj.Error_Log(str(e))
         return jsonify({'error': 'Failed to upload document', 'details': str(e)}), 500
 
-@app.route('/get_documents', methods=['GET'])
-@login_required
+@app.route('/document_list', methods=['GET'])
+# @login_required
 def get_documents():
     docs = list(db.documents.find({}, {'_id': 0}))
     return jsonify(docs)
@@ -472,13 +475,91 @@ def view_document(file_id: str):
 def delete_document(file_id: str):
     try:
         pass
-
     except Exception as e:
         pass
 
+# ----------------------
+#------campaign-api-----
+# ----------------------
+@app.route('/add_campaign', methods=['POST'])
+@login_required
+@admin_required
+def add_campaign_api():
+    try:
+        logg_obj.Info_Log("-----------run_campaign_api----------------")
+        # Get campaign details from form data
+        document_id = request.form.get('document_id')
+        campaign_name = request.form.get('campaign_name')
+        campaign_description = request.form.get('campaign_description')
 
-# ----------------------
-# App Runner
-# ----------------------
+        df = get_dataframe(document_id)
+        if df.empty:
+            logg_obj.Info_Log("No file found!")
+            return jsonify({'error': 'No file found!'}), 400
+
+        #correct the format of df columns.
+        campaign_columns = [col.strip().replace(' ', '_') for col in df.columns]
+        df.columns = campaign_columns
+        #----------------Get-Campaign-Raw_Template---------------#
+        campaign_obj = CampaignTemplateGenerator()
+        campaign_templates = campaign_obj.generate_templates(campaign_columns, campaign_name,campaign_description)
+        #---------------Generate-Campaign-Template---------------#
+        campaign_templates_list = []
+        row_list = [dict(row) for _ , row in df.iterrows()]
+        for row in row_list:
+            templates = campaign_obj.evaluate_fstring_templates(campaign_templates,row)
+            row["campaign_templates"] = templates
+            campaign_templates_list.append(row)
+
+        # Insert multiple documents
+        result = db.campaign_details.insert_many(campaign_templates_list)
+        #--------------------------#
+        token_data = get_token_data()
+        user_id = token_data.get('user_id')
+        # Loop through inserted IDs and update each document
+        for inserted_id in result.inserted_ids:
+            db.campaign_details.update_one(
+                {"_id": inserted_id},
+                {"$set": {"campaign_id": str(document_id),"created_by":user_id}}
+            )
+        logg_obj.Info_Log("Document uploaded successfully")
+        return {
+            'message': f'Campaign added successfully, total rows are {len(result.inserted_ids)}'
+        }
+    except Exception as e:
+        print(str(e))
+        return {"error": str(e)}
+
+@app.route('/campaign_list', methods=['GET'])
+@login_required
+@admin_required
+def campaign_list_api():
+    try:
+        # Get user ID from token
+        token_data = get_token_data()
+        user_id = token_data.get('user_id')
+        # Insert multiple documents
+        result = db.campaign_details.find({"created_by":user_id},{"_id":0})
+        return list(result)
+    except Exception as e:
+        print(str(e))
+        return result
+
+@app.route('/delete_campaign', methods=['POST'])
+@login_required
+@admin_required
+def delete_campaign_api():
+    try:
+        campaign_id = request.form.get('campaign_id')
+        # Insert delete_many documents
+        result = db.campaign_details.delete_many({"campaign_id":campaign_id})
+        if result.deleted_count > 0:
+            return {'message': f'{result.deleted_count} campaign(s) deleted successfully.'}
+        else:
+            return {'message': 'No campaign found with the given campaign_id.'}
+    except Exception as e:
+        print(str(e))
+        return {"error": str(e)}
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8000)

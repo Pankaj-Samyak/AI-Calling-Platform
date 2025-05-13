@@ -6,7 +6,7 @@ from flask import request, jsonify
 from werkzeug.security import check_password_hash
 from ..database.mongodb import db
 
-JWT_SECRET = "stability"
+JWT_SECRET = "AI_Calling"
 JWT_ALGORITHM = "HS256"
 
 def create_token(user_id: str,user_name:str, role: str) -> str:
@@ -36,11 +36,12 @@ def login_required(f):
         if not token:
             return jsonify({"error": "Token is missing"}), 401
         try:
+            print(token)
             token = token.split(" ")[1]  # Remove "Bearer " prefix
             payload = verify_token(token)
             if not payload:
                 return jsonify({"error": "Invalid token"}), 401
-            
+
             # Add user info to request context
             request.user = payload
             return f(*args, **kwargs)
