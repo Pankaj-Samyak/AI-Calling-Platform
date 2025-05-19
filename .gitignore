@@ -16,8 +16,10 @@ eggs/
 .eggs/
 lib/
 lib64/
+logs
 parts/
 sdist/
+old_template_engine/
 var/
 wheels/
 share/python-wheels/
@@ -50,7 +52,10 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 cover/
-
+logs/
+#other files
+test_excel.xlsx
+prompt_template.ipynb
 # Translations
 *.mo
 *.pot

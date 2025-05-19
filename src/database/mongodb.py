@@ -5,6 +5,8 @@ from pymongo import MongoClient
 from pymongo.collection import Collection
 from gridfs import GridFS
 from dotenv import load_dotenv
+import pandas as pd
+import io
 
 load_dotenv()
 
@@ -37,13 +39,19 @@ class MongoDB:
     def documents(self) -> Collection:
         return self._db["documents"]
 
-    # @property
-    # def chat_history(self) -> Collection:
-    #     return self._db["chat_history"]
+    @property
+    def campaign_details(self) -> Collection:
+        return self._db["campaign_details"]
 
-    # @property
-    # def unanswered_questions(self) -> Collection:
-    #     return self._db["unanswered_questions"]
+
+    @property
+    def call_batch_details(self) -> Collection:
+        return self._db["call_batch_details"]
+
+
+    @property
+    def campaign_template(self) -> Collection:
+        return self._db["campaign_template"]
 
     def store_file(self, file_data: bytes, filename: str, metadata: Dict[str, Any] = None) -> str:
         """Store a file in GridFS and return its file_id."""
@@ -78,4 +86,28 @@ class MongoDB:
             self._client.close()
 
 # Create a singleton instance
-db = MongoDB() 
+db = MongoDB()
+
+
+#-----------------GET-DF---------------------#
+def get_dataframe(file_id: str):
+    try:
+        data, meta = db.get_file(file_id)
+        file_type = meta.get('file_type')
+        file_stream = io.BytesIO(data)
+        if file_type == 'csv':
+            df = pd.read_csv(file_stream)
+        elif file_type == '.csv':
+            df = pd.read_csv(file_stream)
+        elif file_type in ['xls', 'xlsx']:
+            df = pd.read_excel(file_stream)
+        elif file_type in ['.xls', '.xlsx']:
+            df = pd.read_excel(file_stream)
+        else:
+            raise ValueError(f"Unsupported file type: {file_type}")
+
+        return df
+    except Exception as e :
+        print(str(e))
+        return None
+
