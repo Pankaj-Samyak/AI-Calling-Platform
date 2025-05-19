@@ -1,6 +1,12 @@
 import json
 
-def get_campaign_prompt(campaign_columns, campaign_name, campaign_description):
+def get_campaign_prompt(campaign_columns,camapign_data):
+    campaign_name = camapign_data.get("campaign_name")
+    campaign_description = camapign_data.get("campaign_description")
+    knowledge_base = camapign_data.get("knowledge_base")
+    system_prompt = camapign_data.get("system_prompt")
+    first_line =  camapign_data.get("first_line")
+    tone = camapign_data.get("tone")
     response_format={
                         "template_1": "f-string template data",
                         "template_2": "f-string template data",
@@ -10,7 +16,10 @@ def get_campaign_prompt(campaign_columns, campaign_name, campaign_description):
     prompt = [
         {
             "role": "system",
-            "content": "You are a professional template generator for AI-powered calling campaigns. Your task is to create engaging and effective call script templates."
+            "content":f"""You are a professional template generator for AI-powered calling campaigns. "
+                        Your task is to create engaging and effective call script templates, aslo
+                        {system_prompt}
+                        """
         },
         {
             "role": "user",
@@ -23,9 +32,12 @@ def get_campaign_prompt(campaign_columns, campaign_name, campaign_description):
                     Campaign Name: {campaign_name}
                     Campaign Description: {campaign_description}
                     Campaign Column Names: {campaign_columns}
+                    Knowledge Base: {knowledge_base}
+                    First Line: {first_line}
+                    Tone: {tone}
 
                     Instructions:
-                    1. Understand the campaign context using the name and description.
+                    1. Understand the campaign context using the name, description and Knowledge Base.
                     2. Use the provided column names as placeholders within f-strings to dynamically insert customer-specific data. For example, use {{column_name}} syntax.
                     3. Ensure all f-strings are syntactically correct and can be executed without error andnot use any symbol inside the f-string.
                     4. Create three distinct templates with different tones:

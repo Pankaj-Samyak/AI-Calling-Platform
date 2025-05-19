@@ -1,160 +1,90 @@
 import os
-import tempfile
-from pathlib import Path
-from datetime import datetime
-from werkzeug.utils import secure_filename
+import pandas as pd
 from flask import Blueprint, request, jsonify
 
-from src.database.mongodb import db
 from src.logger.log import Log_class
-from src.user_utils.auth import login_required, admin_required, get_token_data
+from src.user_utils.auth import login_required, admin_required
+from src.user_utils.utils import extract_text_from_txt, extract_text_from_pdf, extract_text_from_docx, to_snake_case
 
 file_bp = Blueprint('file_bp', __name__)
 logg_obj = Log_class("logs", "file_bp.txt")
 
-#Taking current time.
-def current_timestamp():
-    return datetime.utcnow()
-
-# ----------------------
-# Configurations
-# ----------------------
-ALLOWED_EXTENSIONS = {'.pdf', '.docx', '.xls', '.xlsx', '.csv', '.txt'}
-
-# Helper to check file types
-def allowed_file(filename: str) -> bool:
-    return Path(filename).suffix.lower() in ALLOWED_EXTENSIONS
-
-# ------------------------
-# Document Management API
-# ------------------------
-@file_bp.route('/upload_documents', methods=['POST'])
+#-------------------------------------------------------#
+#----------------Upload-Knowledge-Base------------------#
+#-------------------------------------------------------#
+@file_bp.route('/upload_knowledge_base', methods=['POST'])
 @login_required
 @admin_required
-def upload_excel():
+def upload_knowledge_base_api():
     try:
-        logg_obj.Info_Log("-----------upload_documents----------------")
-        # Get campaign details from form data
-        campaign_name = request.form.get('campaign_name')
-        from_date = request.form.get('from_date')
-        to_date = request.form.get('to_date')
-
-        # Validate required fields
-        if not all([campaign_name, from_date, to_date]):
-            logg_obj.Info_Log("Missing required fields")
-            return jsonify({'error': 'Missing required fields: campaign_name, from_date, to_date'}), 400
-
-        # Check if campaign name already exists
-        if db.documents.find_one({'campaign_name': campaign_name}):
-            logg_obj.Info_Log("Campaign name already exists")
-            return jsonify({'error': 'Campaign name already exists'}), 400
-
-        # Check if file is present
         if 'file' not in request.files:
-            logg_obj.Info_Log("No file part")
-            return jsonify({'error': 'No file part'}), 400
+            return jsonify({"error": "No file part"}), 400
 
         file = request.files['file']
         if file.filename == '':
-            logg_obj.Info_Log("No selected file")
-            return jsonify({'error': 'No selected file'}), 400
+            return jsonify({"error": "No selected file"}), 400
 
-        # Validate file type
-        if not allowed_file(file.filename):
-            logg_obj.Info_Log("Invalid file type")
-            return jsonify({'error': f'Invalid file type. Allowed types: {", ".join(ALLOWED_EXTENSIONS)}'}), 400
+        text = ""
+        filename = file.filename
+        ext = filename.rsplit('.', 1)[-1].lower()
 
-        # Get user ID from token
-        token_data = get_token_data()
-        user_id = token_data.get('user_id')
-        # Create unique filename
-        filename = secure_filename(file.filename)
-        unique_filename = f"{user_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{filename}"
+        try:
+            if ext == 'txt':
+                text = extract_text_from_txt(file.stream)
+            elif ext == 'pdf':
+                text = extract_text_from_pdf(file.stream)
+            elif ext == 'docx':
+                text = extract_text_from_docx(file.stream)
+            else:
+                return jsonify({"error": "Unsupported file format"}), 400
+            text = text.replace("\n"," ").replace("  "," ")
+        except Exception as e:
+            return jsonify({"error": f"Failed to extract text: {str(e)}"}), 500
 
-        # Save file to temporary location
-        temp_dir = tempfile.gettempdir()
-        file_path = os.path.join(temp_dir, unique_filename)
-        file.save(file_path)
-
-        # Read file content
-        with open(file_path, 'rb') as f:
-            file_content = f.read()
-
-        # Store file in GridFS
-        metadata = {
-            'user_id': user_id,
-            'campaign_name': campaign_name,
-            'from_date': from_date,
-            'to_date': to_date,
-            'upload_date': current_timestamp(),
-            'file_type': Path(filename).suffix.lower()
-        }
-
-        file_id = db.store_file(file_content, unique_filename, metadata)
-
-        # Create document record with reference to GridFS file
-        document = {
-            'user_id': user_id,
-            'campaign_name': campaign_name,
-            'from_date': from_date,
-            'to_date': to_date,
-            'filename': filename,
-            'file_id': file_id,  # Store GridFS file ID
-            'upload_date': current_timestamp(),
-            'file_type': Path(filename).suffix.lower()
-        }
-
-        # Save to MongoDB
-        result = db.documents.insert_one(document)
-
-        # Clean up temporary file
-        os.remove(file_path)
-
-        logg_obj.Info_Log("Document uploaded successfully")
         return jsonify({
-            'message': 'Document uploaded successfully',
-            'document_id': str(result.inserted_id)
+            "filename": filename,
+            "extracted_text": text.strip()
         })
-
     except Exception as e:
-        logg_obj.Error_Log(str(e))
-        return jsonify({'error': 'Failed to upload document', 'details': str(e)}), 500
+        return jsonify({"error": f"Failed extract-text: {str(e)}"}), 500
 
-@file_bp.route('/document_list', methods=['GET'])
-# @login_required
-def get_documents():
-    docs = list(db.documents.find({}, {'_id': 0}))
-    return jsonify(docs)
-
-@file_bp.route('/view_document/<file_id>', methods=['GET'])
-def view_document(file_id: str):
-    data, meta = db.get_file(file_id)
-    filename = f"{meta['campaign_name']}.{meta['file_type']}"
-    import mimetypes
-    mime, _ = mimetypes.guess_type(filename)
-    return data, 200, {
-        'Content-Type': mime or 'application/octet-stream',
-        'Content-Disposition': f'inline; filename="{filename}"'
-    }
-
-@file_bp.route('/delete_document/<file_id>', methods=['DELETE'])
+#-----------------------upload_contact_data-------------------------#
+@file_bp.route('/upload_contact_data', methods=['POST'])
 @login_required
-def delete_document(file_id: str):
+@admin_required
+def upload_contact_data_api():
     try:
-        doc = db.documents.find_one({"file_id": file_id})
-        if not doc:
-            return jsonify({"error": "Document not found"}), 404
+        if 'file' not in request.files:
+            return jsonify({"error": "No file uploaded"}), 400
 
-        # Delete from GridFS (MongoDB)
-        if not db.delete_file(file_id):
-            return jsonify({"error": "File not found in GridFS"}), 404
+        file = request.files['file']
+        filename = file.filename
 
-        # Delete metadata from the database
-        result = db.documents.delete_one({"file_id": file_id})
-        if result.deleted_count == 0:
-            return jsonify({"error": "Document not found in DB"}), 404
-        return jsonify({"message": "Document deleted successfully"}), 200
+        if filename == '':
+            return jsonify({"error": "No file selected"}), 400
 
+        ext = filename.rsplit('.', 1)[-1].lower()
+        if ext not in ['xlsx', 'xls', 'csv']:
+            return jsonify({"error": "Unsupported file format"}), 400
+
+        try:
+            # Choose how to read the file based on extension
+            if ext in ['xlsx', 'xls']:
+                df = pd.read_excel(file, engine='openpyxl' if ext == 'xlsx' else 'xlrd')
+            elif ext == 'csv':
+                df = pd.read_csv(file)
+
+            # Convert to list of row-wise JSONs
+            # Rename columns
+            df.columns = [to_snake_case(col) for col in df.columns]
+            data_json = df.to_dict(orient='records')
+            return jsonify(data_json)
+
+        except Exception as e:
+            return jsonify({"error": f"Failed to read file: {str(e)}"}), 500
     except Exception as e:
-        print(str(e))
-        return {}
+        return jsonify({"error": f"upload_contact_data: {str(e)}"}), 500
+
+
+
+

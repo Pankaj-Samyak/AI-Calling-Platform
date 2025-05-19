@@ -1,12 +1,18 @@
+import fitz
+import docx
+import io
 import string
 import random
 
-#--------------------------------User_Id-Generator----------------------------#
+#------------------------------User_Id-Generator----------------------------#
 def generate_unique_id():
         characters = string.ascii_letters + string.digits
         return ''.join(random.choices(characters, k=8))
 
-#------------------------Campaign-Template-Validator--------------------------#
+#-------------------------------to_snake_case-------------------------------#
+def to_snake_case(col):
+    return col.strip().replace(" ", "_").lower()
+#-----------------------Campaign-Template-Validator-------------------------#
 def validate_template(template: str, campaign_columns: list[str]) -> list[str]:
     errors = []
     try:
@@ -27,3 +33,21 @@ def validate_template(template: str, campaign_columns: list[str]) -> list[str]:
         return errors
     except Exception as e:
         errors.append(f"error in validate_template function: {str(e)}")
+
+#---------------------------------------------------------------------------#
+# Extract text from in-memory .txt
+def extract_text_from_txt(file_stream):
+    return file_stream.read().decode('utf-8')
+
+# Extract text from in-memory .pdf
+def extract_text_from_pdf(file_stream):
+    text = ""
+    with fitz.open(stream=file_stream.read(), filetype="pdf") as doc:
+        for page in doc:
+            text += page.get_text()
+    return text
+
+# Extract text from in-memory .docx
+def extract_text_from_docx(file_stream):
+    doc = docx.Document(io.BytesIO(file_stream.read()))
+    return " ".join([para.text for para in doc.paragraphs])
