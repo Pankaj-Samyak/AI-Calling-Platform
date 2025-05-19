@@ -20,7 +20,7 @@ logg_obj = Log_class("logs", "call_bp.txt")
 def generate_campaign_templates_api():
     try:
         templates_data = CampaignTemplates.parse_raw(request.data).dict()
-        #get tha all data from CallBatch request.
+        #get tha all data from CampaignTemplate request.
         callDetails = templates_data.get("callDetails")
         campaign_id = templates_data.get("campaign_id")
         # Get user ID from token

@@ -6,3 +6,5 @@ pyjwt
 bson
 pymongo
 openai
+PyMuPDF
+cryptography

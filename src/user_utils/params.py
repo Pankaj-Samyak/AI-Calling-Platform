@@ -26,3 +26,10 @@ class CallBatch(BaseModel):
 class CampaignTemplates(BaseModel):
     campaign_id: str
     callDetails: List[Any]
+
+#--------------------------------#
+class AddTelephony(BaseModel):
+   twilioAccountSid : str
+   twilioAuthToken : str
+   twilioPhoneNumber : str
+   voiceProvider : str
