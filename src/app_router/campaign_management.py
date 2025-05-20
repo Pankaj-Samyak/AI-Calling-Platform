@@ -34,6 +34,7 @@ def create_campaign_api():
             #Check the campaign is already exists.
             if db.campaign_details.find_one({"user_id":user_id,"campaign_name":campaign_data["campaign_name"]},{"_id":0}):
                 return jsonify({'status':False,'error': 'campaign already exists!'}), 400
+
             # Insert multiple documents
             result = db.campaign_details.insert_one(campaign_data)
             mongo_id = result.inserted_id
