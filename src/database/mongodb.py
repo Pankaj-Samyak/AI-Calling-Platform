@@ -43,14 +43,10 @@ class MongoDB:
     def campaign_details(self) -> Collection:
         return self._db["campaign_details"]
 
-    @property
-    def telephony_details(self) -> Collection:
-        return self._db["telephony_details"]
 
     @property
     def call_batch_details(self) -> Collection:
         return self._db["call_batch_details"]
-
 
     @property
     def campaign_template(self) -> Collection:
