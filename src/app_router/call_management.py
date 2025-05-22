@@ -29,7 +29,6 @@ def generate_campaign_templates_api():
             camapign_data = dict(db.campaign_details.find_one({"campaign_id":campaign_id},{"_id":0}) )
             campaign_columns = list(callDetails[0].keys())
             #---------------------------------------#
-            print(camapign_data)
             campaign_obj = CampaignTemplateGenerator()
             campaign_templates = campaign_obj.generate_templates(campaign_columns, camapign_data)
             return list(campaign_templates.values())
