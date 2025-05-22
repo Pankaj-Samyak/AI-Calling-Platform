@@ -33,3 +33,8 @@ class AddTelephony(BaseModel):
    twilioAuthToken : str
    twilioPhoneNumber : str
    voiceProvider : str
+
+#--------------------------------#
+class LaunchCall(BaseModel):
+    batch_name : str
+    user_id : str
