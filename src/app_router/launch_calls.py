@@ -54,15 +54,15 @@ def decrypt_credential(encrypted_credential):
 def execute_call_batch():
     try:
         batch_data = LaunchCall.parse_raw(request.data).dict()
-
+        user_id = batch_data["user_id"]
         call_batch = list(db.call_batch_details.find({
-                "created_by": batch_data["user_id"],
+                "created_by": user_id,
                 "batch_name": batch_data["batch_name"]}))
         if not call_batch:
             return jsonify({'status': False, "error": "No call batch found with the given name"}), 404
 
         # Fetch user's telephony details
-        telephony_details = db.telephony_details.find_one({"user_id": batch_data["user_id"]})
+        telephony_details = db.telephony_details.find_one({"user_id": user_id})
         if not telephony_details:
             return jsonify({'status': False, "error": "No telephony integration found for this user"}), 400
 
@@ -80,7 +80,7 @@ def execute_call_batch():
                 existing_trunk = None
                 if 'sip_trunk_sid' in telephony_details:
                     try:
-                        existing_trunk = client.trunks(telephony_details['sip_trunk_sid']).fetch()
+                        existing_trunk = client.trunking.trunks(telephony_details['sip_trunk_sid']).fetch()
                     except:
                         pass
 
@@ -95,10 +95,7 @@ def execute_call_batch():
                             friendly_name=f"Auto SIP Domain for {batch_data["user_id"]}"
                         )
                     except:
-                        domain = client.sip.domains.list()
-                        main_dom = [dom for dom in domain if dom.account_sid == account_sid]
-                        dom_sid = main_dom[0].sid
-                        print(dom_sid)
+                        pass
                     # Create SIP trunk
                     try:
                         trunk = client.trunking.trunks.create(
@@ -107,13 +104,12 @@ def execute_call_batch():
                         )
                     except:
                         print(client.trunking.trunks.list())
-                    # print(f"Trunk SID: {trunk.sid}")
-                    # print(f"Trunk Domain: {trunk.domain_name}")
 
                     # Store trunk SID in database
                     db.telephony_details.update_one(
                         {"user_id": batch_data["user_id"]},
-                        {"$set": {"sip_trunk_sid": trunk.sid}}
+                        {"$set": {"sip_trunk_sid": trunk.sid,
+                                  "domain_name":domain_name}}
                     )
 
                     # Update phone number to use SIP trunk
@@ -124,6 +120,13 @@ def execute_call_batch():
                     # Use existing trunk
                     phone_number = f"sip:{phone_number}@{existing_trunk.domain_name}"
                     logg_obj.Info_Log(f"Using existing SIP trunk with SID: {existing_trunk.sid}")
+                    trunk_sid = db.telephony_details.find_one({"user_id":user_id},{"_id":0, "sip_trunk_sid":1, "domain_name":1, "twilioPhoneNumber":1})
+
+                    call = client.calls.create(
+                    to="+919767288259",
+                    from_=trunk_sid.get('twilioPhoneNumber'),
+                    twiml=f'<Response><Say voice="{VOICE}">{SYSTEM_MESSAGE}</Say></Response>'
+                )
                     return {"Status": "Using existing sid"}
 
             except Exception as e:
