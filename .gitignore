@@ -16,7 +16,7 @@ eggs/
 .eggs/
 lib/
 lib64/
-logs
+logs/
 parts/
 sdist/
 old_template_engine/
@@ -25,7 +25,9 @@ wheels/
 share/python-wheels/
 *.egg-info/
 .installed.cfg
+*.env.example/
 *.egg
+prompt_template.ipynb
 MANIFEST
 
 # PyInstaller
@@ -130,6 +132,10 @@ celerybeat.pid
 .env
 .venv
 env/
+.env.example
+.env.example/
+env.example
+env.example/
 venv/
 ENV/
 env.bak/

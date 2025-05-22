@@ -37,7 +37,6 @@ def decrypt_credential(encrypted_credential):
 def add_telephony():
     try:
         telephony_data = AddTelephony.parse_raw(request.data).dict()
-        
         # Encrypt sensitive credentials
         telephony_data['twilioAccountSid'] = encrypt_credential(telephony_data.get('twilioAccountSid'))
         telephony_data['twilioAuthToken'] = encrypt_credential(telephony_data.get('twilioAuthToken'))

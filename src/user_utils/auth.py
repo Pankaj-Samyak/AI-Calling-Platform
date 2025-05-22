@@ -36,7 +36,7 @@ def login_required(f):
         if not token:
             return jsonify({"error": "Token is missing"}), 401
         try:
-            token = token.split(" ")[1]  # Remove "Bearer " prefix
+            token = token.split(" ")[1]
             payload = verify_token(token)
             if not payload:
                 return jsonify({"error": "Invalid token"}), 401
@@ -45,7 +45,7 @@ def login_required(f):
             request.user = payload
             return f(*args, **kwargs)
         except Exception as e:
-            return jsonify({"error": "Authentication failed"}), 401
+            return jsonify({"error": str(e)}), 401
     return decorated
 
 def admin_required(f):

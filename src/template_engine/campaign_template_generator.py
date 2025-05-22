@@ -13,9 +13,9 @@ class CampaignTemplateGenerator:
         except Exception as e:
             print("error in generate_templates", str(e))
             return {}
+
     def evaluate_fstring_templates(self,campaign_templates,campaign_data):
         try:
             return campaign_templates.format(**campaign_data).replace("f","")
         except Exception as e:
-            print(str(e))
             return []
