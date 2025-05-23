@@ -7,7 +7,7 @@ import sqlite3  # or use your actual DB module
 import time
 
 # Configuration
-API_ENDPOINT = "https://your-api.com/trigger"
+API_ENDPOINT = "http://127.0.0.1:8000/launch/execute_call_batch"
 
 # Function to trigger API
 def trigger_api(batch_name, user_id):
