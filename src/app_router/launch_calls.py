@@ -80,7 +80,7 @@ def execute_call_batch():
                 existing_trunk = None
                 if 'sip_trunk_sid' in telephony_details:
                     try:
-                        existing_trunk = client.trunks(telephony_details['sip_trunk_sid']).fetch()
+                        existing_trunk = client.trunking.trunks(telephony_details['sip_trunk_sid']).fetch()
                     except:
                         pass
 
@@ -90,19 +90,24 @@ def execute_call_batch():
 
                     # Create SIP domain
                     try:
+                        user_id = batch_data["user_id"]
                         domain = client.sip.domains.create(
                             domain_name=domain_name,
-                            friendly_name=f"Auto SIP Domain for {batch_data["user_id"]}"
+                            friendly_name=f"Auto SIP Domain for {user_id}"
                         )
-                    except:
+                    except Exception as e:
+                        print("*********************************************")
+                        print(str(e))
                         domain = client.sip.domains.list()
+                        print(domain)
                         main_dom = [dom for dom in domain if dom.account_sid == account_sid]
-                        dom_sid = main_dom[0].sid
-                        print(dom_sid)
+                        # dom_sid = main_dom[0].sid
+                        print(main_dom)
                     # Create SIP trunk
                     try:
+                        user_id = batch_data["user_id"]
                         trunk = client.trunking.trunks.create(
-                            friendly_name=f"Auto SIP Trunk for {batch_data["user_id"]}",
+                            friendly_name=f"Auto SIP Trunk for {user_id}",
                             domain_name=domain_name
                         )
                     except:
