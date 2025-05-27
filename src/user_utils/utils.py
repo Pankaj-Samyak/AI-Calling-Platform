@@ -3,6 +3,11 @@ import docx
 import io
 import string
 import random
+import json
+from livekit import api
+from livekit.protocol.sip import CreateSIPOutboundTrunkRequest, SIPOutboundTrunkInfo
+from dotenv import load_dotenv
+load_dotenv()
 
 #------------------------------User_Id-Generator----------------------------#
 def generate_unique_id():
@@ -51,3 +56,44 @@ def extract_text_from_pdf(file_stream):
 def extract_text_from_docx(file_stream):
     doc = docx.Document(io.BytesIO(file_stream.read()))
     return " ".join([para.text for para in doc.paragraphs])
+
+# Create Livekit Outbound SIP ID
+async def get_lk_outbound_sip(name, address, numbers, user_name, password):
+    livekit_api = api.LiveKitAPI()
+    trunk = SIPOutboundTrunkInfo(
+        name=name,
+        address=address,
+        numbers=[numbers],
+        auth_username=user_name,
+        auth_password=password,
+    )
+ 
+    request = CreateSIPOutboundTrunkRequest(trunk=trunk)
+    created_trunk = await livekit_api.sip.create_sip_outbound_trunk(request)
+    await livekit_api.aclose()
+    return created_trunk.sip_trunk_id
+
+# Trigger the call
+# Generate a unique room name
+async def trigger_outbound_call():
+    livekit_api = api.LiveKitAPI()
+    # Generate a random room name for the outbound call
+    # This can be adjusted to fit your naming conventions
+    room_name = f"outbound-{''.join(str(random.randint(0, 9)) for _ in range(10))}"
+    
+    # Create the dispatch request
+    request = api.CreateAgentDispatchRequest(
+        agent_name="outbound-caller",
+        room=room_name,
+        metadata=json.dumps({
+            "phone_number": "+919304263731"
+        })
+    )
+    
+    # Call the API
+    await livekit_api.agent_dispatch.create_dispatch(request)
+    print(f"Dispatch request created for room: {room_name}")
+
+# asyncio.run(trigger_outbound_call())
+     
+     
