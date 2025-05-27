@@ -100,7 +100,7 @@ def login():
         })
     except Exception as e:
         logg_obj.Error_Log(str(e))
-        return jsonify({'status':"unsuccess","error":str(e)}), 401
+        return jsonify({'status': False, "error":str(e)}), 401
 
 @user_bp.route('/forget_password', methods=['POST'])
 def forget_password_api():
