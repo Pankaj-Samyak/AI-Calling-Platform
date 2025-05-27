@@ -206,7 +206,7 @@ def execute_call_batch():
                         },
                     )
                     print("Created LK Outbound SIP for Twilio and Stored in Telephony Details")
-                    asyncio.run(trigger_outbound_call(outbound_trunk_id=lk_outbound_sip,))
+                    asyncio.run(trigger_outbound_call(outbound_trunk_id=lk_outbound_sip, system_prompt=SYSTEM_MESSAGE))
                 else:
                     # Fetch all details and trigger Call
                     is_lk_outbound_created = telephony_details.get('is_lk_outbound_created')
