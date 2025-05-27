@@ -21,8 +21,7 @@ import io
 load_dotenv()
 
 # Environment variables
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-DOMAIN = os.getenv("DOMAIN", "your-domain.com")  # Your domain for WebSocket
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")  # Your domain for WebSocket
 
 # Voice settings
 VOICE = "ballad"
@@ -210,13 +209,13 @@ def execute_call_batch():
                         },
                     )
                     print("Created LK Outbound SIP for Twilio and Stored in Telephony Details")
-                    asyncio.run(trigger_outbound_call())
+                    asyncio.run(trigger_outbound_call(outbound_trunk_id=lk_outbound_sip,))
                 else:
                     # Fetch all details and trigger Call
                     is_lk_outbound_created = telephony_details.get('is_lk_outbound_created')
                     if is_lk_outbound_created:
                         lk_outbound_sip = telephony_details.get('lk_outbound_sip')
-                    asyncio.run(trigger_outbound_call())
+                    asyncio.run(trigger_outbound_call(outbound_trunk_id=lk_outbound_sip, system_prompt=SYSTEM_MESSAGE))
                     return {"Success":True}
 
             except Exception as e:
