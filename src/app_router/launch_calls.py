@@ -14,6 +14,8 @@ import base64
 import asyncio
 import websockets
 from flask_sock import Sock
+import wave
+import io
 
 load_dotenv()
 
@@ -23,7 +25,7 @@ DOMAIN = os.getenv("DOMAIN", "your-domain.com")  # Your domain for WebSocket
 
 # Voice settings
 VOICE = "ballad"
-SYSTEM_MESSAGE = """You are Catherine, a voice assistant from Samyak Telecommunications. You assist the customer with daily news and fun facts."""  # Add your full system message here
+SYSTEM_MESSAGE = """You are an Ayesha working for a financial services provider. Your tone should be friendly, polite, professional, and easy to understand. You are calling customers to remind them of an upcoming or overdue loan payment. Your goal is to inform them clearly, avoid sounding robotic or aggressive, and offer assistance if needed. You should personalize the call with the customer's name, mention the due date and amount, and ask them if they are able to pay it on time or not, If not, trace the reason. If something is out of order, ask them to contact the support team. Always speak slowly, with natural pauses, and sound empathetic and respectful throughout the call. Find the user details as follows:"""
 
 # Event types to log
 LOG_EVENT_TYPES = [
@@ -38,7 +40,7 @@ LOG_EVENT_TYPES = [
 ]
 
 launch_bp = Blueprint("launch_bp", __name__)
-# sock = Sock(launch_bp)
+sock = Sock(launch_bp)
 logg_obj = Log_class("logs", "launch_calls.txt")
 
 # Get encryption key
@@ -79,7 +81,7 @@ def execute_call_batch():
             )
 
         # Fetch user's telephony details
-        telephony_details = db.telephony_details.find_one({"user_id": user_id})
+        telephony_details = db.telephony_details.find_one({"user_id": user_id},{"_id":0})
         if not telephony_details:
             return (
                 jsonify(
@@ -96,8 +98,7 @@ def execute_call_batch():
             account_sid = decrypt_credential(telephony_details["twilioAccountSid"])
             auth_token = decrypt_credential(telephony_details["twilioAuthToken"])
             phone_number = telephony_details.get("twilioPhoneNumber")
-
-            # Initialize Twilio client
+        
             client = Client(account_sid, auth_token)
             # Fetch call batch details from MongoDB
             try:
@@ -108,7 +109,6 @@ def execute_call_batch():
                         existing_trunk = client.trunks(telephony_details['sip_trunk_sid']).fetch()
                     except:
                         pass
-
                 if not existing_trunk:
                     # Create a unique domain name based on account SID
                     domain_name = f"{account_sid[-8:]}.pstn.twilio.com"
@@ -132,6 +132,7 @@ def execute_call_batch():
                             friendly_name=f"Auto SIP Trunk for {batch_data["user_id"]}",
                             domain_name=domain_name
                         )
+                        trunk_sid = trunk.sid
                     except:
                         print(client.trunking.trunks.list())
 
@@ -140,84 +141,64 @@ def execute_call_batch():
                         {"user_id": batch_data["user_id"]},
                         {
                             "$set": {
-                                "sip_trunk_sid": trunk.sid,
+                                "sip_trunk_sid": trunk_sid,
                                 "domain_name": domain_name,
                             }
                         },
                     )
 
-                    # Update phone number to use SIP trunk
-                    phone_number = f"sip:{phone_number}@{domain_name}"
-                    logg_obj.Info_Log(f"Created new SIP trunk with SID: {trunk.sid}")
-                    return {"Status": "SIP Created"}
-                else:
-                    # Use existing trunk
-                    phone_number = f"sip:{phone_number}@{existing_trunk.domain_name}"
-                    logg_obj.Info_Log(
-                        f"Using existing SIP trunk with SID: {existing_trunk.sid}"
-                    )
-                    trunk_sid = db.telephony_details.find_one(
-                        {"user_id": user_id},
+                    # Create Credentials
+                    credential_list = client.sip.credential_lists.create(
+                            friendly_name=f'{user_id}-Credential-List',
+                        )
+                    print(f"Created Credential List SID: {credential_list.sid}")
+                    # Store Credential List SID in database
+                    db.telephony_details.update_one(
+                        {"user_id": batch_data["user_id"]},
                         {
-                            "_id": 0,
-                            "sip_trunk_sid": 1,
-                            "domain_name": 1,
-                            "twilioPhoneNumber": 1,
+                            "$set": {
+                                "credential_list_sid": credential_list.sid,
+                            }
                         },
                     )
 
-                    outbound_twiml = (
-                        f'<?xml version="1.0" encoding="UTF-8"?>'
-                        f'<Response><Connect><Stream url="wss://{DOMAIN}/media-stream" /></Connect></Response>'
+                    credential = client.sip.credential_lists(credential_list.sid).credentials.create(
+                        username= user_id,
+                        password= user_id
+                    )
+                    print(f"Created Credential SID: {credential.sid}")
+
+                    # Store Credential SID in database
+                    db.telephony_details.update_one(
+                        {"user_id": batch_data["user_id"]},
+                        {
+                            "$set": {
+                                "credential_sid": credential.sid,
+                            }
+                        },
                     )
 
-                    call = client.calls.create(
-                        to="+919304263731",
-                        from_=trunk_sid.get("twilioPhoneNumber"),
-                        twiml=outbound_twiml,
+                    # Associate Credential List with Trunk's Termination
+                    client.trunking.v1.trunks(trunk_sid).credentials_lists \
+                        .create(credential_list_sid=credential_list.sid)
+
+                    print("Credential List linked to Termination URI")
+                    # Store Credential List SID in database
+                    db.telephony_details.update_one(
+                        {"user_id": batch_data["user_id"]},
+                        {
+                            "$set": {
+                                "is_credential_linked": True,
+                            }
+                        },
                     )
-                    return {"Status": "Using existing sid"}
-
-            except Exception as e:
-                logg_obj.Error_Log(f"Error in SIP trunk setup: {str(e)}")
-                # Fall back to regular phone number if SIP setup fails
-                logg_obj.Info_Log("Falling back to regular phone number")
-                return {"Error in execute call batch": str(e)}
-        else:
-            pass
-
-    except Exception as e:
-        print("Error in Execute call batch", str(e))
-        return jsonify({"status": False, "error": f"{e}"}), 500
+                    print("Credential List linked to Termination URI and added to telephony details")
 
 
-@launch_bp.route("/stream_audio", methods=["GET"])
-def stream_audio():
-    def generate_audio():
-        try:
-            # Initialize OpenAI client
-            client = openai.OpenAI(api_key=OPENAI_API_KEY)
-
-            # Create a streaming response from OpenAI
-            response = client.audio.speech.create(
-                model="tts-1", voice=VOICE, input=SYSTEM_MESSAGE, response_format="mp3"
-            )
-
-            # Stream the audio data in chunks
-            for chunk in response.iter_bytes(chunk_size=4096):
-                yield chunk
-
-        except Exception as e:
-            logg_obj.Error_Log(f"Error in audio streaming: {str(e)}")
-            yield b""
-
-    return Response(generate_audio(), mimetype="audio/mpeg")  # Using MP3 format
-
-
-@launch_bp.route("/call_status", methods=["POST"])
-def call_status():
-    # Handle call status updates
-    status = request.form.get("CallStatus")
-    call_sid = request.form.get("CallSid")
-    logg_obj.Info_Log(f"Call {call_sid} status: {status}")
-    return "", 200
+                else:
+                # If SIP is created and other steps are carried out
+                    pass
+            except:
+                pass
+    except:
+        pass
