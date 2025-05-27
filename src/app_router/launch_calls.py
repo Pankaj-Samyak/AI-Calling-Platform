@@ -3,6 +3,7 @@ from flask import Blueprint, jsonify, request, Response
 from src.database.mongodb import db
 from src.user_utils.params import LaunchCall
 from src.user_utils.auth import login_required, admin_required, get_token_data
+from src.user_utils.utils import get_lk_outbound_sip, trigger_outbound_call
 from src.logger.log import Log_class
 from twilio.rest import Client
 import openai
@@ -132,7 +133,7 @@ def execute_call_batch():
                             friendly_name=f"Auto SIP Trunk for {batch_data["user_id"]}",
                             domain_name=domain_name
                         )
-                        trunk_sid = trunk.sid
+                        # trunk_sid = trunk.sid
                     except:
                         print(client.trunking.trunks.list())
 
@@ -141,12 +142,11 @@ def execute_call_batch():
                         {"user_id": batch_data["user_id"]},
                         {
                             "$set": {
-                                "sip_trunk_sid": trunk_sid,
+                                "sip_trunk_sid": trunk.sid,
                                 "domain_name": domain_name,
                             }
                         },
                     )
-
                     # Create Credentials
                     credential_list = client.sip.credential_lists.create(
                             friendly_name=f'{user_id}-Credential-List',
@@ -161,10 +161,10 @@ def execute_call_batch():
                             }
                         },
                     )
-
+                    auth_password = telephony_details["voiceProvider"] + user_id 
                     credential = client.sip.credential_lists(credential_list.sid).credentials.create(
                         username= user_id,
-                        password= user_id
+                        password= auth_password
                     )
                     print(f"Created Credential SID: {credential.sid}")
 
@@ -174,15 +174,18 @@ def execute_call_batch():
                         {
                             "$set": {
                                 "credential_sid": credential.sid,
+                                "user_name": user_id,
+                                "password": auth_password
                             }
                         },
                     )
 
                     # Associate Credential List with Trunk's Termination
-                    client.trunking.v1.trunks(trunk_sid).credentials_lists \
+                    client.trunking.v1.trunks(trunk.sid).credentials_lists \
                         .create(credential_list_sid=credential_list.sid)
 
                     print("Credential List linked to Termination URI")
+
                     # Store Credential List SID in database
                     db.telephony_details.update_one(
                         {"user_id": batch_data["user_id"]},
@@ -194,11 +197,29 @@ def execute_call_batch():
                     )
                     print("Credential List linked to Termination URI and added to telephony details")
 
-
+                    # Create Livekit Outbound SIP
+                    lk_outbound_sip = asyncio.run(get_lk_outbound_sip(name=user_id, address=domain_name, numbers=phone_number, user_name=user_id, password=auth_password))
+                    # Store Credential List SID in database
+                    db.telephony_details.update_one(
+                        {"user_id": batch_data["user_id"]},
+                        {
+                            "$set": {
+                                "is_lk_outbound_created": True,
+                                "lk_outbound_sip": lk_outbound_sip
+                            }
+                        },
+                    )
+                    print("Created LK Outbound SIP for Twilio and Stored in Telephony Details")
+                    asyncio.run(trigger_outbound_call())
                 else:
-                # If SIP is created and other steps are carried out
-                    pass
-            except:
-                pass
+                    # Fetch all details and trigger Call
+                    is_lk_outbound_created = telephony_details.get('is_lk_outbound_created')
+                    if is_lk_outbound_created:
+                        lk_outbound_sip = telephony_details.get('lk_outbound_sip')
+                    asyncio.run(trigger_outbound_call())
+                    return {"Success":True}
+
+            except Exception as e:
+                print(str(e))
     except:
         pass
