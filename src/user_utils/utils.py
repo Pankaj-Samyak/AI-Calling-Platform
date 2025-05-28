@@ -5,6 +5,8 @@ import string
 import random
 import json
 from livekit import api
+import requests
+from requests.auth import HTTPBasicAuth
 from livekit.protocol.sip import CreateSIPOutboundTrunkRequest, SIPOutboundTrunkInfo
 from dotenv import load_dotenv
 load_dotenv()
@@ -86,7 +88,7 @@ async def trigger_outbound_call(outbound_trunk_id, system_prompt):
         agent_name="outbound-caller",
         room=room_name,
         metadata=json.dumps({
-            "phone_number": "+919304263731",
+            "phone_number": "+919767288259",
             "outbound_trunk_id": outbound_trunk_id,
             "system_prompt": system_prompt
 
@@ -97,6 +99,22 @@ async def trigger_outbound_call(outbound_trunk_id, system_prompt):
     await livekit_api.agent_dispatch.create_dispatch(request)
     print(f"Dispatch request created for room: {room_name}")
 
-# asyncio.run(trigger_outbound_call())
-     
-     
+# Activate the call recording through twilio
+
+def activate_recording(trunk_sid, account_sid, auth_token):
+    try:
+        url = f'https://trunking.twilio.com/v1/Trunks/{trunk_sid}/Recording'
+
+        data = {
+            'Mode': 'record-from-answer-dual'  # Options: 'do-not-record', 'record-from-ringing', 'record-from-answer'. For dual add -dual at end. 
+        }
+        response = requests.post(url, data=data, auth=HTTPBasicAuth(account_sid, auth_token))
+
+        if response.status_code == 200:
+            return {"status": "success", "message" : "Recording mode updated successfully."}
+        else:
+            return {"status": "fail", "message" : f"Failed to update recording mode. Status code: {response.status_code}"}
+        
+    except Exception as e:
+         print(str(e), "Failure in activating the recording.")
+         return {"status": "fail", "message" : "Failed to update recording mode, due to technical error."}

@@ -82,7 +82,6 @@ def login():
             return jsonify({'error': 'Email and password are required'}), 400
 
         user = authenticate_user(email, password)
-        print(user)
         if not user:
             logg_obj.Info_Log("Invalid credentials")
             return jsonify({'error': 'Invalid credentials'}), 401
