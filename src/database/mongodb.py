@@ -38,6 +38,10 @@ class MongoDB:
     @property
     def documents(self) -> Collection:
         return self._db["documents"]
+    
+    @property
+    def campaign_call_logs(self) -> Collection:
+        return self._db["campaign_call_logs"]
 
     @property
     def campaign_details(self) -> Collection:

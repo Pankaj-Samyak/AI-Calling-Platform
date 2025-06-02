@@ -77,7 +77,7 @@ async def get_lk_outbound_sip(name, address, numbers, user_name, password):
 
 # Trigger the call
 # Generate a unique room name
-async def trigger_outbound_call(outbound_trunk_id, system_prompt):
+async def trigger_outbound_call(outbound_trunk_id, system_prompt, campaign_id, batch_name, user_id):
     livekit_api = api.LiveKitAPI()
     # Generate a random room name for the outbound call
     # This can be adjusted to fit your naming conventions
@@ -90,21 +90,20 @@ async def trigger_outbound_call(outbound_trunk_id, system_prompt):
         metadata=json.dumps({
             "phone_number": "+919767288259",
             "outbound_trunk_id": outbound_trunk_id,
-            "system_prompt": system_prompt
-
+            "system_prompt": system_prompt,
+            "campaign_id": campaign_id,
+            "batch_name": batch_name,
+            "user_id": user_id
         })
     )
-    
     # Call the API
     await livekit_api.agent_dispatch.create_dispatch(request)
     print(f"Dispatch request created for room: {room_name}")
 
 # Activate the call recording through twilio
-
 def activate_recording(trunk_sid, account_sid, auth_token):
     try:
         url = f'https://trunking.twilio.com/v1/Trunks/{trunk_sid}/Recording'
-
         data = {
             'Mode': 'record-from-answer-dual'  # Options: 'do-not-record', 'record-from-ringing', 'record-from-answer'. For dual add -dual at end. 
         }

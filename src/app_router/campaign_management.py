@@ -55,7 +55,7 @@ def campaign_list_api():
     try:
         token_data = get_token_data()
         user_id = token_data.get('user_id')
-        result = db.campaign_details.find({"user_id":user_id},{"_id":0, "campaign_id":1, "campaign_name":1})
+        result = db.campaign_details.find({"user_id":user_id},{"_id":0})
         return list(result)
     except Exception as e:
         return []

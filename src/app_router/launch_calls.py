@@ -6,7 +6,6 @@ from src.user_utils.auth import login_required, admin_required, get_token_data
 from src.user_utils.utils import get_lk_outbound_sip, trigger_outbound_call, activate_recording
 from src.logger.log import Log_class
 from twilio.rest import Client
-import openai
 import os
 from dotenv import load_dotenv
 from cryptography.fernet import Fernet
@@ -19,9 +18,6 @@ import wave
 import io
 
 load_dotenv()
-
-# Environment variables
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")  # Your domain for WebSocket
 
 # Voice settings
 VOICE = "ballad"
@@ -64,9 +60,11 @@ def execute_call_batch():
     try:
         batch_data = LaunchCall.parse_raw(request.data).dict()
         user_id = batch_data["user_id"]
+        campaign_id = batch_data["campaign_id"]
         call_batch = list(
             db.call_batch_details.find(
-                {"created_by": user_id, "batch_name": batch_data["batch_name"]}
+                {"created_by": user_id, "batch_name": batch_data["batch_name"],
+                 "campaign_id": campaign_id}, {"_id": 0}
             )
         )
         if not call_batch:
@@ -205,7 +203,11 @@ def execute_call_batch():
                     print(
                         "Credential List linked to Termination URI and added to telephony details"
                     )
-
+                    
+                    campaign_details = db.campaign_details.find_one(
+            {"user_id": user_id, "campaign_id": campaign_id}, {"_id": 0}
+        )
+                    print(campaign_details)
                     # Create Livekit Outbound SIP
                     lk_outbound_sip = asyncio.run(
                         get_lk_outbound_sip(
@@ -233,6 +235,9 @@ def execute_call_batch():
                         trigger_outbound_call(
                             outbound_trunk_id=lk_outbound_sip,
                             system_prompt=SYSTEM_MESSAGE,
+                            campaign_id=campaign_id,
+                            batch_name = batch_data["batch_name"],
+                            user_id=user_id
                         )
                     )
                     return {"Call_Initiated": True}
@@ -247,10 +252,12 @@ def execute_call_batch():
                         trigger_outbound_call(
                             outbound_trunk_id=lk_outbound_sip,
                             system_prompt=SYSTEM_MESSAGE,
+                            campaign_id=campaign_id,
+                            batch_name = batch_data["batch_name"],
+                            user_id=user_id
                         )
                     )
                     return {"Success": True}
-
             except Exception as e:
                 print(str(e))
     except:
