@@ -5,6 +5,8 @@ import string
 import random
 import json
 from livekit import api
+import requests
+from requests.auth import HTTPBasicAuth
 from livekit.protocol.sip import CreateSIPOutboundTrunkRequest, SIPOutboundTrunkInfo
 from dotenv import load_dotenv
 load_dotenv()
@@ -75,7 +77,7 @@ async def get_lk_outbound_sip(name, address, numbers, user_name, password):
 
 # Trigger the call
 # Generate a unique room name
-async def trigger_outbound_call(name, phone_number, template, outbound_trunk_id):
+async def trigger_outbound_call(outbound_trunk_id, system_prompt):
     livekit_api = api.LiveKitAPI()
     # Generate a random room name for the outbound call
     # This can be adjusted to fit your naming conventions
@@ -86,11 +88,16 @@ async def trigger_outbound_call(name, phone_number, template, outbound_trunk_id)
         agent_name="outbound-caller",
         room=room_name,
         metadata=json.dumps({
-            "name": name,
-            "phone_number": phone_number,
+            "phone_number": "+919304263731",
             "outbound_trunk_id": outbound_trunk_id,
-            "system_prompt": template
+            "system_prompt": system_prompt
+
         })
     )
-    # Dispatch the call
-    return await livekit_api.agent_dispatch.create_dispatch(request)
+
+    # Call the API
+    await livekit_api.agent_dispatch.create_dispatch(request)
+    print(f"Dispatch request created for room: {room_name}")
+
+# asyncio.run(trigger_outbound_call())
+

@@ -60,7 +60,6 @@ def authenticate_user(email: str, password: str) -> Optional[Dict[str, Any]]:
     """Authenticate user and return user info if valid."""
     try:
         user = db.users.find_one({"email": email},{"_id": 0})
-        print(user, "afdasfsdfasd")
         if user and check_password_hash(user.get("password"), password):
             return {
                 "user_id": str(user["user_id"]),

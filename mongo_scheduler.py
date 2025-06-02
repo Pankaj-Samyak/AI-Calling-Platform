@@ -1,0 +1,111 @@
+from pymongo import MongoClient
+from pymongo.errors import PyMongoError
+from twilio.rest import Client
+import threading
+import time
+import pprint
+from src.database.mongodb import db  # Make sure this imports your MongoDB instance correctly
+import os
+from cryptography.fernet import Fernet
+
+# Get encryption key
+ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY")
+
+# Initialize Fernet with the encryption key
+try:
+    cipher_suite = Fernet(ENCRYPTION_KEY)
+except Exception as e:
+    raise Exception("Invalid encryption key or error initializing Fernet") from e
+
+
+def decrypt_credential(encrypted_credential):
+    """Decrypt a credential using Fernet symmetric encryption"""
+    return cipher_suite.decrypt(encrypted_credential.encode()).decode()
+
+MAX_RETRIES = 5
+RETRY_INTERVAL = 10  # seconds between status checks
+FINAL_STATUSES = ['completed', 'failed', 'canceled', 'no-answer', 'busy']
+
+
+def get_twilio_credentials(user_id):
+    """Fetch and decrypt Twilio credentials for the given user"""
+    cred = db.telephony_details.find_one({"user_id": user_id}, {"_id": 0})
+    if cred and cred.get("voiceProvider") == "TWILIO":
+        account_sid = decrypt_credential(cred["twilioAccountSid"])
+        auth_token = decrypt_credential(cred["twilioAuthToken"])
+        return account_sid, auth_token
+    raise Exception(f"No Twilio credentials found for user_id: {user_id}")
+
+
+def handle_call_status_update(doc):
+    """Poll Twilio for call status and update the database"""
+    call_sid = doc.get("twilio_call_sid")
+    campaign_logs = db.campaign_call_logs.find_one({"twilio_call_sid": call_sid}, {"_id": 0})
+    user_id = campaign_logs.get('user_id')
+
+    try:
+        account_sid, auth_token = get_twilio_credentials(user_id)
+        client = Client(account_sid, auth_token)
+        attempt = 0
+        status = None
+
+        while attempt < MAX_RETRIES:
+            call = client.calls(call_sid).fetch()
+            status = call.status
+            print(f"[{call_sid}] Attempt {attempt + 1}: Status = {status}")
+
+            if status in FINAL_STATUSES:
+                update_data = {"call_status": status}
+                if status == "completed":
+                    update_data.update({
+                        "call_duration": call.duration,
+                        "start_time": call.start_time,
+                        "end_time": call.end_time,
+                        "price": call.price,
+                        "direction": call.direction,
+                        "from": call.caller_name,
+                        "to": call.to,
+                    })
+
+                db.campaign_call_logs.update_one({"_id": doc["_id"]}, {"$set": update_data})
+                print(f"Updated document with final status: {status}")
+                return
+            else:
+                attempt += 1
+                time.sleep(RETRY_INTERVAL)
+
+        # After retries, update with last known status
+        print(f"[{call_sid}] Max retries reached. Last known status: {status}")
+        db.campaign_call_logs.update_one({"_id": doc["_id"]}, {"$set": {"call_status": status}})
+
+    except Exception as e:
+        print(f"Error handling call status for {call_sid}: {e}")
+
+
+def poll_for_new_calls():
+    """Poll MongoDB every few seconds for new outbound calls without a final status"""
+    print("Polling for new call logs...")
+
+    processed_ids = set()
+
+    while True:
+        try:
+            docs = db.campaign_call_logs.find({
+                "twilio_call_flag": True,
+                "call_status": {"$exists": False}
+            })
+
+            for doc in docs:
+                doc_id = str(doc["_id"])
+                if doc_id not in processed_ids:
+                    processed_ids.add(doc_id)
+                    threading.Thread(target=handle_call_status_update, args=(doc,)).start()
+
+        except PyMongoError as e:
+            print(f"MongoDB error during polling: {e}")
+
+        time.sleep(5)  # Poll every 10 seconds
+
+
+if __name__ == "__main__":
+    poll_for_new_calls()

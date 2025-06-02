@@ -3,10 +3,9 @@ from flask import Blueprint, jsonify, request, Response
 from src.database.mongodb import db
 from src.user_utils.params import LaunchCall
 from src.user_utils.auth import login_required, admin_required, get_token_data
-from src.user_utils.utils import get_lk_outbound_sip, trigger_outbound_call
+from src.user_utils.utils import get_lk_outbound_sip, trigger_outbound_call, activate_recording
 from src.logger.log import Log_class
 from twilio.rest import Client
-import openai
 import os
 from dotenv import load_dotenv
 from cryptography.fernet import Fernet
@@ -19,9 +18,6 @@ import wave
 import io
 
 load_dotenv()
-
-# Environment variables
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")  # Your domain for WebSocket
 
 # Voice settings
 VOICE = "ballad"
@@ -64,9 +60,11 @@ def execute_call_batch():
     try:
         batch_data = LaunchCall.parse_raw(request.data).dict()
         user_id = batch_data["user_id"]
+        campaign_id = batch_data["campaign_id"]
         call_batch = list(
             db.call_batch_details.find(
-                {"created_by": user_id, "batch_name": batch_data["batch_name"]}
+                {"created_by": user_id, "batch_name": batch_data["batch_name"],
+                 "campaign_id": campaign_id}, {"_id": 0}
             )
         )
         if not call_batch:
@@ -81,7 +79,9 @@ def execute_call_batch():
             )
 
         # Fetch user's telephony details
-        telephony_details = db.telephony_details.find_one({"user_id": user_id},{"_id":0})
+        telephony_details = db.telephony_details.find_one(
+            {"user_id": user_id}, {"_id": 0}
+        )
         if not telephony_details:
             return (
                 jsonify(
@@ -98,7 +98,7 @@ def execute_call_batch():
             account_sid = decrypt_credential(telephony_details["twilioAccountSid"])
             auth_token = decrypt_credential(telephony_details["twilioAuthToken"])
             phone_number = telephony_details.get("twilioPhoneNumber")
-        
+
             client = Client(account_sid, auth_token)
             # Fetch call batch details from MongoDB
             try:
@@ -130,7 +130,7 @@ def execute_call_batch():
                         user_id = batch_data["user_id"]
                         trunk = client.trunking.trunks.create(
                             friendly_name=f"Auto SIP Trunk for {batch_data["user_id"]}",
-                            domain_name=domain_name
+                            domain_name=domain_name,
                         )
                         # trunk_sid = trunk.sid
                     except:
@@ -148,8 +148,8 @@ def execute_call_batch():
                     )
                     # Create Credentials
                     credential_list = client.sip.credential_lists.create(
-                            friendly_name=f'{user_id}-Credential-List',
-                        )
+                        friendly_name=f"{user_id}-Credential-List",
+                    )
                     print(f"Created Credential List SID: {credential_list.sid}")
                     # Store Credential List SID in database
                     db.telephony_details.update_one(
@@ -160,11 +160,10 @@ def execute_call_batch():
                             }
                         },
                     )
-                    auth_password = telephony_details["voiceProvider"] + user_id 
-                    credential = client.sip.credential_lists(credential_list.sid).credentials.create(
-                        username= user_id,
-                        password= auth_password
-                    )
+                    auth_password = telephony_details["voiceProvider"] + user_id
+                    credential = client.sip.credential_lists(
+                        credential_list.sid
+                    ).credentials.create(username=user_id, password=auth_password)
                     print(f"Created Credential SID: {credential.sid}")
 
                     # Store Credential SID in database
@@ -174,14 +173,15 @@ def execute_call_batch():
                             "$set": {
                                 "credential_sid": credential.sid,
                                 "user_name": user_id,
-                                "password": auth_password
+                                "password": auth_password,
                             }
                         },
                     )
 
                     # Associate Credential List with Trunk's Termination
-                    client.trunking.v1.trunks(trunk.sid).credentials_lists \
-                        .create(credential_list_sid=credential_list.sid)
+                    client.trunking.v1.trunks(trunk.sid).credentials_lists.create(
+                        credential_list_sid=credential_list.sid
+                    )
 
                     print("Credential List linked to Termination URI")
 
@@ -194,28 +194,44 @@ def execute_call_batch():
                             }
                         },
                     )
-                    print("Credential List linked to Termination URI and added to telephony details")
-
+                    print(
+                        "Credential List linked to Termination URI and added to telephony details"
+                    )
+                    
+                    campaign_details = db.campaign_details.find_one(
+            {"user_id": user_id, "campaign_id": campaign_id}, {"_id": 0}
+        )
+                    print(campaign_details)
                     # Create Livekit Outbound SIP
-                    lk_outbound_sip = asyncio.run(get_lk_outbound_sip(name=user_id, address=domain_name, numbers=phone_number, user_name=user_id, password=auth_password))
+                    lk_outbound_sip = asyncio.run(
+                        get_lk_outbound_sip(
+                            name=user_id,
+                            address=domain_name,
+                            numbers=phone_number,
+                            user_name=user_id,
+                            password=auth_password,
+                        )
+                    )
                     # Store Credential List SID in database
                     db.telephony_details.update_one(
                         {"user_id": batch_data["user_id"]},
                         {
                             "$set": {
                                 "is_lk_outbound_created": True,
-                                "lk_outbound_sip": lk_outbound_sip
+                                "lk_outbound_sip": lk_outbound_sip,
                             }
                         },
                     )
                     print("Created LK Outbound SIP for Twilio and Stored in Telephony Details")
-                    # asyncio.run(trigger_outbound_call(outbound_trunk_id=lk_outbound_sip,))
+                    asyncio.run(trigger_outbound_call(outbound_trunk_id=lk_outbound_sip,))
                 else:
                     # Fetch all details and trigger Call
-                    is_lk_outbound_created = telephony_details.get('is_lk_outbound_created')
+                    is_lk_outbound_created = telephony_details.get(
+                        "is_lk_outbound_created"
+                    )
                     if is_lk_outbound_created:
                         lk_outbound_sip = telephony_details.get('lk_outbound_sip')
-                    # asyncio.run(trigger_outbound_call(outbound_trunk_id=lk_outbound_sip, system_prompt=SYSTEM_MESSAGE))
+                    asyncio.run(trigger_outbound_call(outbound_trunk_id=lk_outbound_sip, system_prompt=SYSTEM_MESSAGE))
                     return {"Success":True}
 
             except Exception as e:
