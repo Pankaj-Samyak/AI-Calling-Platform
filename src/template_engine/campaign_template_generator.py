@@ -16,6 +16,6 @@ class CampaignTemplateGenerator:
 
     def evaluate_fstring_templates(self,campaign_templates,campaign_data):
         try:
-            return campaign_templates.format(**campaign_data).replace("f","")
+            return campaign_templates.format(**campaign_data).replace("","")
         except Exception as e:
             return []
