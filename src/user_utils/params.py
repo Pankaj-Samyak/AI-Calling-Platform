@@ -5,6 +5,7 @@ from typing import Any, Dict, List
 class CreateCampaign(BaseModel):
     campaign_name: str
     campaign_description: str
+    campaign_type: str
     voice: str
     language: str
     knowledge_base: str
@@ -54,3 +55,11 @@ class LaunchCall(BaseModel):
     batch_name : str
     user_id : str
     campaign_id : str
+
+#--------------------------------#
+class signup(BaseModel):
+    name: str
+    role: str = 'admin'
+    email: str
+    password: str
+    

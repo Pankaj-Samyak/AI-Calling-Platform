@@ -3,10 +3,11 @@ from pymongo.errors import PyMongoError
 from twilio.rest import Client
 import threading
 import time
-import pprint
 from src.database.mongodb import db  # Make sure this imports your MongoDB instance correctly
 import os
 from cryptography.fernet import Fernet
+import requests
+import gridfs
 
 # Get encryption key
 ENCRYPTION_KEY = os.getenv("ENCRYPTION_KEY")
@@ -26,7 +27,6 @@ MAX_RETRIES = 5
 RETRY_INTERVAL = 10  # seconds between status checks
 FINAL_STATUSES = ['completed', 'failed', 'canceled', 'no-answer', 'busy']
 
-
 def get_twilio_credentials(user_id):
     """Fetch and decrypt Twilio credentials for the given user"""
     cred = db.telephony_details.find_one({"user_id": user_id}, {"_id": 0})
@@ -36,12 +36,12 @@ def get_twilio_credentials(user_id):
         return account_sid, auth_token
     raise Exception(f"No Twilio credentials found for user_id: {user_id}")
 
-
 def handle_call_status_update(doc):
     """Poll Twilio for call status and update the database"""
     call_sid = doc.get("twilio_call_sid")
     campaign_logs = db.campaign_call_logs.find_one({"twilio_call_sid": call_sid}, {"_id": 0})
     user_id = campaign_logs.get('user_id')
+    campaign_id = campaign_logs.get('campaign_id')
 
     try:
         account_sid, auth_token = get_twilio_credentials(user_id)
@@ -65,8 +65,29 @@ def handle_call_status_update(doc):
                         "direction": call.direction,
                         "from": call.caller_name,
                         "to": call.to,
+                        "recording": False
                     })
-
+                    recordings = client.recordings.list(call_sid=call_sid)
+                    if not recordings:
+                        raise ValueError("No recordings found for this call SID.")
+                    recording = recordings[0]
+                    recording_url = f"https://api.twilio.com{recording.uri.replace('.json', '.mp3')}"
+                    # Download mp3 as raw bytes
+                    response = requests.get(recording_url, auth=(account_sid, auth_token))
+                    if response.status_code != 200:
+                        raise Exception(f"Failed to fetch recording: {response.status_code} {response.text}")
+                    
+                    file_id = db.store_file(file_data= response.content, filename=f"{call_sid}.mp3")
+                    recording_doc = {
+                        "user_id" : user_id,
+                        "twilio_call_sid": call_sid,
+                        "campaign_id": campaign_logs.get('campaign_id'),
+                        "batch_name": campaign_logs.get('batch_name'),
+                        "call_duration": call.duration,
+                        "phone_number": call.to,
+                        "file_id": file_id
+                    }
+                    db.recordings.insert_one(recording_doc)
                 db.campaign_call_logs.update_one({"_id": doc["_id"]}, {"$set": update_data})
                 print(f"Updated document with final status: {status}")
                 return
@@ -105,7 +126,6 @@ def poll_for_new_calls():
             print(f"MongoDB error during polling: {e}")
 
         time.sleep(5)  # Poll every 10 seconds
-
 
 if __name__ == "__main__":
     poll_for_new_calls()

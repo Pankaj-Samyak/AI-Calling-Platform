@@ -1,7 +1,7 @@
 from datetime import datetime
 from flask import Blueprint, jsonify, request
 from werkzeug.security import generate_password_hash, check_password_hash
-
+from src.user_utils.params import signup
 from src.database.mongodb import db
 from src.logger.log import Log_class
 from src.user_utils.utils import generate_unique_id
@@ -23,8 +23,7 @@ def signup():
         logg_obj.Info_Log("-----------signup----------------")
         data = request.get_json()
         required_fields= [
-            "name", "role", "email", "password",
-            "phone_no", "pincode", "city", "state", "country", "address"
+            "name", "role", "email", "password"
         ]
         missing_fields = list(filter(lambda x : not bool(x in data),required_fields))
         if missing_fields:

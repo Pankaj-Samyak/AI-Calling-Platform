@@ -24,7 +24,7 @@ class MongoDB:
     def __init__(self):
         if self._client is None:
             try:
-                mongo_uri = os.getenv("MONGODB_URI", "mongodb://10.100.111.10:27017/")
+                mongo_uri = os.getenv("MONGODB_URI", "mongodb://localhost:27017/")
                 self._client = MongoClient(mongo_uri)
                 self._db = self._client["AI_CALLING"]
                 self._fs = GridFS(self._db)
@@ -58,6 +58,14 @@ class MongoDB:
     @property
     def campaign_template(self) -> Collection:
         return self._db["campaign_template"]
+    
+    @property
+    def recordings(self) -> Collection:
+        return self._db["recordings"]
+    
+    @property
+    def settings(self) -> Collection:
+        return self._db["settings"]
 
     def store_file(self, file_data: bytes, filename: str, metadata: Dict[str, Any] = None) -> str:
         """Store a file in GridFS and return its file_id."""

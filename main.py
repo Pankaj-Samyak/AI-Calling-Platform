@@ -7,6 +7,7 @@ from src.app_router.campaign_management import campaign_bp
 from src.app_router.call_management import call_bp
 from src.app_router.integration import integration_bp
 from src.app_router.launch_calls import launch_bp
+from src.app_router.settings import settings_bp
 
 app = Flask(__name__)
 CORS(app)
@@ -19,6 +20,7 @@ app.register_blueprint(campaign_bp, url_prefix='/campaign')
 app.register_blueprint(call_bp, url_prefix='/call')
 app.register_blueprint(integration_bp, url_prefix='/integration')
 app.register_blueprint(launch_bp, url_prefix='/launch')
+app.register_blueprint(settings_bp, url_prefix='/settings')
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8000)
